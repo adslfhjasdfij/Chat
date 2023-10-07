@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            width: 300px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4caf50;
+        }
+
+        .login-form input[type="text"],
+        .login-form input[type="password"],
+        .login-form input[type="message"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .login-form input[type="submit"] {
+            width: 100%;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-form input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        .secret-message {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            color: #4caf50;
+        }
+
+        .chat-container {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form class="login-form" onsubmit="return validateForm()">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br>
+
+            <input type="submit" value="Login">
+        </form>
+
+        <div class="secret-message" id="secretMessage">
+            Congratulations! You are logged in as <span id="loggedInUser"></span>. Welcome to the secret area!
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Initialize Firebase
+        var firebaseConfig = {
+            apiKey: "AIzaSyDKr2XnPHA_l-1MxJDEZc0hdA3GdabFCeI",
+            authDomain: "chat-8b925.firebaseapp.com",
+            projectId: "chat-8b925",
+            storageBucket: "chat-8b925.appspot.com",
+            messagingSenderId: "645929406773",
+            appId: "1:645929406773:web:fa2731c16c965c41043c7c",
+            measurementId: "G-YFSWL08V7F"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        var database = firebase.database();
+        var loggedInUser = null;
+
+        function validateForm() {
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+            var loginForm = document.querySelector('.login-form');
+            var secretMessage = document.getElementById("secretMessage");
+            var chatContainer = document.getElementById("chatContainer");
+            var loggedInUserDisplay = document.getElementById("loggedInUser");
+
+            // Hardcoded username and password pairs for testing
+            var users = [
+                { username: "user1", password: "password1" },
+                { username: "user2", password: "password2" }
+            ];
+
+            var isValidUser = false;
+            for (var i = 0; i < users.length; i++) {
+                if (username === users[i].username && password === users[i].password) {
+                    isValidUser = true;
+                    loggedInUser = username;
+                    loggedInUserDisplay.innerText = username;
+                    break;
+                }
+            }
+
+            if (isValidUser) {
+                alert("Login successful!");
+                loginForm.style.display = "none";
+                secretMessage.style.display = "block";
+                chatContainer.style.display = "block";
+                listenForMessages();
+                return false; // Prevent form submission (optional)
+            } else {
+                alert("Invalid username or password. Please try again.");
+                return false;
+            }
+        }
+
+        function sendMessage() {
+            var messageInput = document.getElementById("messageInput");
+            var message = messageInput.value.trim();
+            if (message === "") {
+                return;
+            }
+
+            // Push the message data to Firebase
+            var messagesRef = database.ref('messages');
+            messagesRef.push({
+                user: loggedInUser,
+                message: message,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            messageInput.value = "";
+        }
+
+        function displayMessage(user, message) {
+            var messageContainer = document.getElementById("chatContainer");
+            var messageElement = document.createElement("div");
+            messageElement.innerText = user + ": " + message;
+            messageContainer.appendChild(messageElement);
+
+            // Scroll to the bottom of the chat container
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function listenForMessages() {
+            var messagesRef = database.ref('messages');
+            messagesRef.on('child_added', function (snapshot) {
+                var messageData = snapshot.val();
+                var user = messageData.user;
+                var message = messageData.message;
+                displayMessage(user, message);
+            });
+        }
+    </script>
+</body>
+
+</html>
